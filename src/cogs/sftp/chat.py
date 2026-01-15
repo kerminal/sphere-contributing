@@ -192,7 +192,7 @@ class SFTPChatCog(commands.Cog):
             if message.author.bot or not message.guild or not message.content:
                 return
             for cfg in self.config:
-                if "channel" in cfg and str(message.channel.id) == str(cfg["channel"]) and "name" in cfg:
+                if "chat_channel" in cfg and str(message.channel.id) == str(cfg["chat_channel"]) and "name" in cfg:
                     details = await fetch_server_details(message.guild.id, cfg["name"])
                     if details:
                         host = details[2]

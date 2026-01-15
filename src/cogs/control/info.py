@@ -4,6 +4,7 @@ from discord import app_commands
 from utils.database import server_autocomplete, fetch_server_details
 from palworld_api import PalworldAPI
 from utils.apicache import api_cache
+import utils.constants as constants
 import logging
 
 class ServerInfoCog(commands.Cog):
@@ -44,7 +45,7 @@ class ServerInfoCog(commands.Cog):
             embed.add_field(name="FPS", value=server_metrics.get('serverfps', 'N/A'), inline=True)
             embed.add_field(name="Latency", value=f"{server_metrics.get('serverframetime', 'N/A'):.2f} ms", inline=True)
             embed.add_field(name="WorldGUID", value=f"`{server_info.get('worldguid', 'N/A')}`", inline=False)
-            embed.set_thumbnail(url="https://www.palbot.gg/images/rexavatar.png")
+            embed.set_thumbnail(url=constants.SPHERE_THUMBNAIL)
             
             await interaction.followup.send(embed=embed)
         except Exception as e:
