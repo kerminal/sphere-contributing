@@ -6,7 +6,7 @@
     password: "password1"
     path: "Pal/Binaries/Win64/PalDefender/Logs"
     webhook: "https://discord.com/api/webhooks/111111111111111111/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    channel: 111111111111111111
+    chat_channel: 111111111111111111
     save_path: "Pal/Saved/SaveGames/0/0000000000000001"
     backup_channel: 111111111111111111
     backup_interval: 300
@@ -17,3 +17,4 @@ economy:
   work_cooldown: 3600
   work_minamount: 10
   work_maxamount: 50
+  shop_logs: 333333333333333333

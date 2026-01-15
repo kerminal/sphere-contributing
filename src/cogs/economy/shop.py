@@ -32,6 +32,10 @@ class ShopCog(commands.Cog):
         self.rcon = RconUtility()
         self.shop_items = load_shop_config()
         self.economy_config = load_economy_config()
+    
+    def reload_config(self):
+        self.shop_items = load_shop_config()
+        self.economy_config = load_economy_config()
 
     async def get_server_info(self, guild_id: int, server_name: str):
         details = await fetch_server_details(guild_id, server_name)
@@ -44,11 +48,26 @@ class ShopCog(commands.Cog):
         return [app_commands.Choice(name=x, value=x) for x in results[:25]]
 
     async def autocomplete_shop_item(self, interaction: discord.Interaction, current: str):
+        self.reload_config()
         results = []
+        
+        server = None
+        if interaction.namespace:
+            server = getattr(interaction.namespace, 'server', None)
+        
         for item in self.shop_items:
             name = item.get("name", "")
-            if current.lower() in name.lower():
-                results.append(app_commands.Choice(name=name, value=name))
+            item_server = item.get("server")
+            
+            if server:
+                if item_server == server:
+                    if current.lower() in name.lower():
+                        results.append(app_commands.Choice(name=name, value=name))
+            else:
+                if item_server is None:
+                    if current.lower() in name.lower():
+                        results.append(app_commands.Choice(name=name, value=name))
+        
         return results[:25]
 
     @app_commands.command(name="shop", description="View available shop items.")
@@ -57,6 +76,8 @@ class ShopCog(commands.Cog):
     @app_commands.guild_only()
     async def shop(self, interaction: discord.Interaction, server: str = None):
         await interaction.response.defer(ephemeral=True)
+        
+        self.reload_config()
         
         if not self.shop_items:
             await interaction.followup.send("The shop is currently empty.", ephemeral=True)
@@ -69,7 +90,7 @@ class ShopCog(commands.Cog):
                 if item_server is None:
                     filtered_items.append(item)
             else:
-                if item_server is None or item_server == server:
+                if item_server == server:
                     filtered_items.append(item)
         
         if not filtered_items:
@@ -107,11 +128,13 @@ class ShopCog(commands.Cog):
         await interaction.followup.send(embed=embed, ephemeral=True)
 
     @app_commands.command(name="buy", description="Purchase an item from the shop.")
-    @app_commands.describe(item_name="The item to purchase", server="Server to deliver items to")
-    @app_commands.autocomplete(item_name=autocomplete_shop_item, server=autocomplete_server)
+    @app_commands.describe(server="Server to deliver items to", item_name="The item to purchase")
+    @app_commands.autocomplete(server=autocomplete_server, item_name=autocomplete_shop_item)
     @app_commands.guild_only()
-    async def buy(self, interaction: discord.Interaction, item_name: str, server: str):
+    async def buy(self, interaction: discord.Interaction, server: str, item_name: str):
         await interaction.response.defer(ephemeral=True)
+        
+        self.reload_config()
         
         if not interaction.guild:
             await interaction.followup.send("This command can only be used in a guild.", ephemeral=True)
@@ -133,6 +156,7 @@ class ShopCog(commands.Cog):
             return
         
         item_server = shop_item.get("server")
+        
         if item_server is not None and item_server != server:
             await interaction.followup.send(
                 f"'{item_name}' is only available on server '{item_server}'.",
@@ -218,6 +242,32 @@ class ShopCog(commands.Cog):
         )
         
         await interaction.followup.send(embed=embed, ephemeral=True)
+        
+        log_channel_id = self.economy_config.get("shop_logs")
+        if log_channel_id:
+            try:
+                log_channel = self.bot.get_channel(int(log_channel_id))
+                if log_channel:
+                    log_embed = discord.Embed(
+                        title="Shop Purchase",
+                        color=discord.Color.gold(),
+                        timestamp=discord.utils.utcnow()
+                    )
+                    log_embed.add_field(name="User", value=f"{interaction.user.mention} ({interaction.user.name})", inline=True)
+                    log_embed.add_field(name="Item", value=shop_item.get('name'), inline=True)
+                    log_embed.add_field(name="Price", value=f"{price} {currency}", inline=True)
+                    log_embed.add_field(name="Server", value=server, inline=True)
+                    log_embed.add_field(name="Player ID", value=f"||`{player_userid}`||", inline=True)
+                    log_embed.add_field(name="New Balance", value=f"{new_balance} {currency}", inline=True)
+                    log_embed.add_field(
+                        name="Items Given",
+                        value="\n".join([f"• {item}" for item in items_to_give]),
+                        inline=False
+                    )
+                    log_embed.set_footer(text=f"User ID: {interaction.user.id}")
+                    await log_channel.send(embed=log_embed)
+            except Exception as e:
+                pass
 
 async def setup(bot):
     await bot.add_cog(ShopCog(bot))
