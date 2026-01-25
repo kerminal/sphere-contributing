@@ -113,7 +113,7 @@ class SFTPBackupCog(commands.Cog):
         zip_name = f"{cfg.get('name','server')}_{datetime.datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.zip"
         zip_path = os.path.join(staging_dir, zip_name)
         try:
-            with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
+            with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
                 for root, dirs, files in os.walk(staging_dir):
                     for f in files:
                         if f == os.path.basename(zip_path):
